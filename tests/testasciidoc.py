@@ -206,13 +206,14 @@ class AsciiDocTest(object):
         infile = self.source
         outfile = StringIO.StringIO()
         asciidoc.execute(infile, outfile, backend)
-        return outfile.getvalue().splitlines()
+        has_warnings = asciidoc.asciidoc.document.has_warnings
+        return outfile.getvalue().splitlines(), has_warnings
 
     def update_expected(self, backend):
         """
         Generate and write backend data.
         """
-        lines = self.generate_expected(backend)
+        lines, has_warnings = self.generate_expected(backend)
         if not os.path.isdir(self.datadir):
             print('CREATING: %s' % self.datadir)
             os.mkdir(self.datadir)
@@ -245,7 +246,7 @@ class AsciiDocTest(object):
         else:
             backends = [backend]
         result = True   # Assume success.
-        self.passed = self.failed = self.skipped = 0
+        self.passed = self.failed = self.warned = self.skipped = 0
         print('%d: %s' % (self.number, self.title))
         if self.source and os.path.isfile(self.source):
             print('SOURCE: asciidoc: %s' % self.source)
@@ -254,7 +255,7 @@ class AsciiDocTest(object):
                 if not self.is_missing(backend):
                     expected = self.get_expected(backend)
                     strip_end(expected)
-                    got = self.generate_expected(backend)
+                    got, has_warnings = self.generate_expected(backend)
                     strip_end(got)
                     lines = []
                     for line in difflib.unified_diff(got, expected, n=0):
@@ -269,6 +270,9 @@ class AsciiDocTest(object):
                         for line in lines:
                             message(line)
                         message()
+                    elif has_warnings:
+                        self.warned += 1
+                        print('WARNED: %s: %s' % (backend, fromfile))
                     else:
                         self.passed += 1
                         print('PASSED: %s: %s' % (backend, fromfile))
@@ -328,17 +332,20 @@ class AsciiDocTests(object):
         Run all tests.
         If number is specified run test number (1..).
         """
-        self.passed = self.failed = self.skipped = 0
+        self.passed = self.failed = self.warned = self.skipped = 0
         for test in self.tests:
             if (not test.disabled or number) and (not number or number == test.number) and (not backend or backend in test.backends):
                 test.run(backend)
                 self.passed += test.passed
                 self.failed += test.failed
+                self.warned += test.warned
                 self.skipped += test.skipped
         if self.passed > 0:
             print('TOTAL PASSED:  %s' % self.passed)
         if self.failed > 0:
             print('TOTAL FAILED:  %s' % self.failed)
+        if self.warned > 0:
+            print('TOTAL WARNED:  %s' % self.warned)
         if self.skipped > 0:
             print('TOTAL SKIPPED: %s' % self.skipped)
 
@@ -434,7 +441,7 @@ if __name__ == '__main__':
         sys.exit(1)
     if cmd == 'run':
         tests.run(number, backend)
-        if tests.failed:
+        if tests.failed or tests.warned or tests.skipped:
             sys.exit(1)
     elif cmd == 'update':
         tests.update(number, backend, force=force)
