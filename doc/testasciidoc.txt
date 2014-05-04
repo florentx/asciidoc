@@ -171,6 +171,9 @@ Optional list of command-line option tuples.
 % attributes
 Optional dictionary of attribute values.
 
+% messages
+Optional list of expected messages
+
 ---------------------------------------------------------------------
 
 Example test spec:
@@ -209,6 +212,10 @@ configuration file that comes with AsciiDoc.
   equivalent to a `(name,None)` tuple.
 - The 'attributes' directive data specifies a Python dictionary
   containing AsciiDoc attributes to be passed to AsciiDoc.
+- The 'messages' directive is a list of messages expected on the
+  screen.  The format is `WARNING: something goes wrong` where
+  filename and line number are omitted.  Unexpected messages will
+  be reported as warnings in the test report.
 
 globals directive
 ~~~~~~~~~~~~~~~~~

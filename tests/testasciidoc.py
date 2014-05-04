@@ -109,6 +109,7 @@ class AsciiDocTest(object):
         self.options = []
         self.attributes = {'asciidoc-version': 'test'}
         self.backends = BACKENDS
+        self.messages = []
         self.datadir = None     # Where output files are stored.
         self.disabled = False
 
@@ -161,6 +162,10 @@ class AsciiDocTest(object):
                     self.backends = eval(' '.join(data))
                 elif directive == 'name':
                     self.name = data[0].strip()
+                elif directive == 'messages':
+                    for msg in data:
+                        (level, sep, text) = msg.partition(':')
+                        self.messages.append((level, text))
                 else:
                     raise (ValueError, 'illegal directive: %s' % l[0])
         if not self.title:
@@ -206,15 +211,18 @@ class AsciiDocTest(object):
         infile = self.source
         outfile = StringIO.StringIO()
         asciidoc.execute(infile, outfile, backend)
-        has_warnings = asciidoc.asciidoc.document.has_warnings
-        messages = asciidoc.messages
-        return outfile.getvalue().splitlines(), has_warnings, messages
+        messages = []
+        for msg in asciidoc.messages:
+            (level, fname, line, text) = msg.split(':', 3)
+            if (level, text) not in self.messages:
+                messages.append(msg)
+        return outfile.getvalue().splitlines(), messages
 
     def update_expected(self, backend):
         """
         Generate and write backend data.
         """
-        lines, __, __ = self.generate_expected(backend)
+        lines, __ = self.generate_expected(backend)
         if not os.path.isdir(self.datadir):
             print('CREATING: %s' % self.datadir)
             os.mkdir(self.datadir)
@@ -256,10 +264,10 @@ class AsciiDocTest(object):
                 if not self.is_missing(backend):
                     expected = self.get_expected(backend)
                     strip_end(expected)
-                    got, has_warnings, msgs = self.generate_expected(backend)
+                    got, messages = self.generate_expected(backend)
                     strip_end(got)
-                    for message in msgs:
-                        print('  %s' % message)
+                    for msg in messages:
+                        print('  %s' % msg)
                     lines = []
                     for line in difflib.unified_diff(got, expected, n=0):
                         lines.append(line)
@@ -273,7 +281,7 @@ class AsciiDocTest(object):
                         for line in lines:
                             message(line)
                         message()
-                    elif has_warnings:
+                    elif messages:
                         self.warned += 1
                         print('WARNED: %s: %s' % (backend, fromfile))
                     else:
