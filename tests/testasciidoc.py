@@ -207,13 +207,14 @@ class AsciiDocTest(object):
         outfile = StringIO.StringIO()
         asciidoc.execute(infile, outfile, backend)
         has_warnings = asciidoc.asciidoc.document.has_warnings
-        return outfile.getvalue().splitlines(), has_warnings
+        messages = asciidoc.messages
+        return outfile.getvalue().splitlines(), has_warnings, messages
 
     def update_expected(self, backend):
         """
         Generate and write backend data.
         """
-        lines, has_warnings = self.generate_expected(backend)
+        lines, __, __ = self.generate_expected(backend)
         if not os.path.isdir(self.datadir):
             print('CREATING: %s' % self.datadir)
             os.mkdir(self.datadir)
@@ -255,8 +256,10 @@ class AsciiDocTest(object):
                 if not self.is_missing(backend):
                     expected = self.get_expected(backend)
                     strip_end(expected)
-                    got, has_warnings = self.generate_expected(backend)
+                    got, has_warnings, msgs = self.generate_expected(backend)
                     strip_end(got)
+                    for message in msgs:
+                        print('  %s' % message)
                     lines = []
                     for line in difflib.unified_diff(got, expected, n=0):
                         lines.append(line)
