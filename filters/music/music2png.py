@@ -50,11 +50,10 @@ COPYING
     granted under the terms of the GNU General Public License (GPL).
 '''
 
-# Suppress warning: "the md5 module is deprecated; use hashlib instead"
-import warnings
-warnings.simplefilter('ignore',DeprecationWarning)
-
-import os, sys, tempfile, md5
+import hashlib
+import os
+import sys
+import tempfile
 
 VERSION = '0.1.2'
 
@@ -103,7 +102,7 @@ def music2png(format, infile, outfile, modified):
     skip = False
     if infile == '-':
         source = sys.stdin.read()
-        checksum = md5.new(source).digest()
+        checksum = hashlib.md5(source).digest()
         filename = os.path.splitext(outfile)[0] + '.md5'
         if modified:
             if os.path.isfile(filename) and os.path.isfile(outfile) and \
